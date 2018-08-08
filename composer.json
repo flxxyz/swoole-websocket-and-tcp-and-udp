@@ -1,0 +1,29 @@
+{
+  "name": "flxxyz/swoole-websocket-and-tcp-and-udp",
+  "description": "websocket+tcp+udp混用实例",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "flxxyz",
+      "email": "i@mdzz.name"
+    }
+  ],
+  "require": {
+    "php": ">=5.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "swoole_websocket_and_tcp_and_udp\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "swoole_websocket_and_tcp_and_udp_test\\": "test/"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require-dev": {
+    "eaglewu/swoole-ide-helper": "dev-master"
+  }
+}
