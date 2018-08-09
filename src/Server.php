@@ -5,6 +5,8 @@ namespace swoole_websocket_and_tcp_and_udp;
 
 use swoole_websocket_and_tcp_and_udp\common\Logger;
 use swoole_websocket_and_tcp_and_udp\common\ProcessTrait;
+use swoole_websocket_and_tcp_and_udp\handler\HttpHandler;
+use swoole_websocket_and_tcp_and_udp\handler\WebsocketHandler;
 
 class Server
 {
@@ -22,6 +24,8 @@ class Server
     protected $primaryConfig = [];
 
     protected $enableWebsocket = false;
+
+    protected $enableTask = false;
 
     public function __construct($config)
     {
@@ -44,15 +48,19 @@ class Server
         $type = $this->primaryConfig['type'];
         $setting = $this->primaryConfig['setting'];
 
+        if (isset($setting['task_worker_num'])) {
+            $this->enableTask = true;
+        }
+
         Logger::info("开始监听端口 {$host}:{$port}");
         $this->server = new $serverClass($host, $port, SWOOLE_PROCESS, $type);
         $this->server->set($setting);
 
 
         $this->bindBaseEvent();
-        $this->bindHttpEvent();
         $this->bindTaskEvent();
-        $this->bindWebsocketEvent();
+        $this->bindMasterEvent();
+        $this->bindOtherEvent();
     }
 
     /**
@@ -72,34 +80,19 @@ class Server
         $this->server->on('PipeMessage', [$this, 'PipeMessage']);
     }
 
-    protected function bindHttpEvent()
-    {
-        $this->server->on('Request', [$this, 'request']);
-    }
-
     protected function bindTaskEvent()
     {
         $this->server->on('Task', [$this, 'task']);
         $this->server->on('Finish', [$this, 'finish']);
     }
 
-    protected function bindWebsocketEvent()
+    protected function bindMasterEvent()
     {
-        if ($this->enableWebsocket) {
-            $handlerClass = $this->primaryConfig['handler'];
-            $handler = new $handlerClass();
-            if (!($handler instanceof protocol\WebsocketEvent)) {
-                throw new \Exception(sprintf('%s 当前类不属于 %s',
-                    $handlerClass, protocol\WebsocketEvent::class));
-            }
+        $handlerClass = $this->primaryConfig['handler'];
 
-            $eventHandler = function ($method, array $params) use ($handler) {
-                try {
-                    call_user_func_array([$handler, $method], $params);
-                } catch (\Exception $e) {
-                    exit($e);
-                }
-            };
+        if ($this->enableWebsocket) {
+            $websocketHandler = new WebsocketHandler($handlerClass);
+            $eventHandler = $websocketHandler->make();
 
             $this->server->on('Open', function () use ($eventHandler) {
                 $eventHandler('open', func_get_args());
@@ -112,7 +105,19 @@ class Server
             $this->server->on('Close', function () use ($eventHandler) {
                 $eventHandler('close', func_get_args());
             });
+        } else {
+            $httpHandler = new HttpHandler($handlerClass);
+            $eventHandler = $httpHandler->make();
+
+            $this->server->on('request', function () use ($eventHandler) {
+                $eventHandler('request', func_get_args());
+            });
         }
+    }
+
+    protected function bindOtherEvent()
+    {
+
     }
 
     public function start(\swoole_http_server $server)
@@ -154,8 +159,10 @@ class Server
         $this->setProcessName(sprintf('%s process %d', $process,
             $worker_id));
 
-        if (!$server->taskworker) {
-            $server->task(1);
+        if ($this->enableTask) {
+            if (!$server->taskworker) {
+                $server->task(1);
+            }
         }
     }
 
@@ -205,13 +212,6 @@ class Server
 
     public function finish(\swoole_http_server $server, $task_id, $data)
     {
-
-    }
-
-    public function request(
-        \swoole_http_request $request,
-        \swoole_http_response $response
-    ) {
 
     }
 

@@ -25,7 +25,7 @@ abstract class HttpEvent implements HttpInterface
     }
 
     public function request(
-        \swoole_http_server $server,
+        \swoole_http_request $request,
         \swoole_http_response $response
     ) {
         // TODO: Implement request() method.

@@ -15,7 +15,7 @@ $config = [
             'open_websocket_protocol' => true,
             'task_worker_num'         => 1,
         ],
-        'handler' => swoole_websocket_and_tcp_and_udp_test\webscoket::class,
+        'handler' => \swoole_websocket_and_tcp_and_udp_test\webscoket::class,
     ],
     'http'                => [
         'enable'  => true,
@@ -23,8 +23,10 @@ $config = [
         'port'    => '9001',
         'type'    => SWOOLE_SOCK_TCP,
         'setting' => [
-            'open_websocket_protocol' => true,
+            'open_http_protocol' => true,
+            'daemonize'          => false,
         ],
+        'handler' => \swoole_websocket_and_tcp_and_udp_test\http::class,
     ],
     'tcp'                 => [
         'enable'  => true,
