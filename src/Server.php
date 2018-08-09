@@ -35,10 +35,23 @@ class Server
         if (isset($this->config['websocket'])) {
             $this->enableWebsocket = true;
             $this->primaryConfig = $this->config['websocket'];
+            $this->primaryConfig['setting']['open_websocket_protocol'] = true;
+            if(!isset($this->primaryConfig['setting']['open_http_protocol'])) {
+                $this->primaryConfig['setting']['open_http_protocol'] = true;
+            }
+            if(!isset($this->primaryConfig['setting']['daemonize'])) {
+                $this->primaryConfig['setting']['daemonize'] = false;
+            }
+
             $serverClass = \swoole_websocket_server::class;
         } else {
             if (isset($this->config['http'])) {
                 $this->primaryConfig = $this->config['http'];
+                $this->primaryConfig['setting']['open_http_protocol'] = true;
+                if(!isset($this->primaryConfig['setting']['daemonize'])) {
+                    $this->primaryConfig['setting']['daemonize'] = false;
+                }
+
                 $serverClass = \swoole_http_server::class;
             }
         }
