@@ -3,7 +3,9 @@
 require_once './vendor/autoload.php';
 
 $config = [
-    'websocket' => [
+    'timezone'            => 'Asia/Shanghai',
+    'tick_interval_timer' => 30, //秒
+    'websocket'           => [
         'enable'  => true,
         'host'    => '0.0.0.0',
         'port'    => '9000',
@@ -15,7 +17,7 @@ $config = [
         ],
         'handler' => swoole_websocket_and_tcp_and_udp_test\webscoket::class,
     ],
-    'http'      => [
+    'http'                => [
         'enable'  => true,
         'host'    => '0.0.0.0',
         'port'    => '9001',
@@ -24,7 +26,7 @@ $config = [
             'open_websocket_protocol' => true,
         ],
     ],
-    'tcp'       => [
+    'tcp'                 => [
         'enable'  => true,
         'host'    => '0.0.0.0',
         'port'    => '9002',
@@ -37,7 +39,7 @@ $config = [
             'heartbeat_idle_time'      => 60,
         ],
     ],
-    'udp'       => [
+    'udp'                 => [
         'enable'  => true,
         'host'    => '0.0.0.0',
         'port'    => '9003',
@@ -52,4 +54,4 @@ $config = [
 
 $server = new \swoole_websocket_and_tcp_and_udp\Server($config);
 
-$server;
+$server->run();
