@@ -36,6 +36,7 @@ $config = [
             'heartbeat_check_interval' => 30,
             'heartbeat_idle_time'      => 60,
         ],
+        'handler' => \swoole_websocket_and_tcp_and_udp_test\tcp::class,
     ],
     'udp'                 => [
         'enable'  => true,
@@ -46,6 +47,7 @@ $config = [
             'open_eof_check' => true,
             'package_eof'    => "\r\n",
         ],
+        'handler' => '',
     ],
 ];
 

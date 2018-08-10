@@ -7,7 +7,7 @@ namespace swoole_websocket_and_tcp_and_udp\protocol;
  *
  * @package swoole_websocket_and_tcp_and_udp\protocol
  */
-abstract class TcpEvent implements TcpInterface
+abstract class TcpEvent implements TcpInterface, PortInterface
 {
     /**
      * @var \swoole_server_port
@@ -29,22 +29,22 @@ abstract class TcpEvent implements TcpInterface
         // TODO: Implement connect() method.
     }
 
-    public function receive(swoole_server $server, $fd, $from_id, $data = [])
+    public function receive(\swoole_server $server, $fd, $from_id, $data = [])
     {
         // TODO: Implement receive() method.
     }
 
-    public function close(swoole_server $server, $fd)
+    public function close(\swoole_server $server, $fd)
     {
         // TODO: Implement close() method.
     }
 
-    public function bufferFull(swoole_server $server, $fd)
+    public function bufferFull(\swoole_server $server, $fd)
     {
         // TODO: Implement bufferFull() method.
     }
 
-    public function bufferEmpty(swoole_server $server, $fd)
+    public function bufferEmpty(\swoole_server $server, $fd)
     {
         // TODO: Implement bufferEmpty() method.
     }

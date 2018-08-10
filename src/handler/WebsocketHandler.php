@@ -3,7 +3,7 @@
 namespace swoole_websocket_and_tcp_and_udp\handler;
 
 
-use swoole_websocket_and_tcp_and_udp\protocol\WebsocketEvent;
+use swoole_websocket_and_tcp_and_udp\WebsocketHandlerInterface;
 
 class WebsocketHandler extends Handler
 {
@@ -16,9 +16,9 @@ class WebsocketHandler extends Handler
     {
         $handler = new $this->handlerClass();
 
-        if (!($handler instanceof WebsocketEvent)) {
+        if (!($handler instanceof WebsocketHandlerInterface)) {
             throw new \Exception(sprintf('%s 当前类不属于 %s',
-                $this->handlerClass, WebsocketEvent::class));
+                $this->handlerClass, WebsocketHandlerInterface::class));
         }
 
         return $this->eventCallbak($handler);

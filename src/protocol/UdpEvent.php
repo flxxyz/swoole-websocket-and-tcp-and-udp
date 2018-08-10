@@ -7,7 +7,7 @@ namespace swoole_websocket_and_tcp_and_udp\protocol;
  *
  * @package swoole_websocket_and_tcp_and_udp\protocol
  */
-abstract class UdpEvent implements UdpInterface
+abstract class UdpEvent implements UdpInterface, PortInterface
 {
     /**
      * @var \swoole_server_port

@@ -5,12 +5,18 @@ namespace swoole_websocket_and_tcp_and_udp;
 
 use swoole_websocket_and_tcp_and_udp\common\Logger;
 use swoole_websocket_and_tcp_and_udp\common\ProcessTrait;
+use swoole_websocket_and_tcp_and_udp\common\Swoole;
 use swoole_websocket_and_tcp_and_udp\handler\HttpHandler;
+use swoole_websocket_and_tcp_and_udp\handler\ServerHandler;
 use swoole_websocket_and_tcp_and_udp\handler\WebsocketHandler;
 
+/**
+ * @description 此文件多处借鉴 @laravel-s
+ * @link        https://github.com/hhxsv5/laravel-s/blob/master/src/Swoole/Server.php#L65
+ */
 class Server
 {
-    use ProcessTrait, Logger;
+    use ProcessTrait, Logger, Swoole;
 
     protected $port;
 
@@ -27,34 +33,71 @@ class Server
 
     protected $enableTask = false;
 
+    protected $otherConfig = [];
+
     public function __construct($config)
     {
+        $this->checkSwoole('1.10.4');
+
+        $this->primaryConfig = [
+            'host'    => '0.0.0.0',
+            'port'    => '8999',
+            'type'    => SWOOLE_SOCK_TCP,
+            'setting' => [
+                'daemonize'          => false,
+                'open_http_protocol' => true,
+            ],
+            'handler' => \swoole_websocket_and_tcp_and_udp_test\http::class,
+        ];
+        $serverClass = \swoole_http_server::class;
+
         $this->config = $config;
         ini_set('date.timezone', $this->config['timezone']);
 
         if (isset($this->config['websocket'])) {
-            $this->enableWebsocket = true;
-            $this->primaryConfig = $this->config['websocket'];
-            $this->primaryConfig['setting']['open_websocket_protocol'] = true;
-            if(!isset($this->primaryConfig['setting']['open_http_protocol'])) {
-                $this->primaryConfig['setting']['open_http_protocol'] = true;
-            }
-            if(!isset($this->primaryConfig['setting']['daemonize'])) {
-                $this->primaryConfig['setting']['daemonize'] = false;
-            }
-
-            $serverClass = \swoole_websocket_server::class;
-        } else {
-            if (isset($this->config['http'])) {
-                $this->primaryConfig = $this->config['http'];
-                $this->primaryConfig['setting']['open_http_protocol'] = true;
-                if(!isset($this->primaryConfig['setting']['daemonize'])) {
+            if ($this->config['websocket']['enable']) {
+                $this->enableWebsocket = true;
+                $this->primaryConfig = $this->config['websocket'];
+                $this->primaryConfig['setting']['open_websocket_protocol']
+                    = true;
+                if (!isset($this->primaryConfig['setting']['open_http_protocol'])) {
+                    $this->primaryConfig['setting']['open_http_protocol']
+                        = true;
+                }
+                if (!isset($this->primaryConfig['setting']['daemonize'])) {
                     $this->primaryConfig['setting']['daemonize'] = false;
                 }
+                $serverClass = \swoole_websocket_server::class;
+                unset($this->config['websocket']);
 
-                $serverClass = \swoole_http_server::class;
+                goto start;
             }
         }
+
+        if (isset($this->config['http'])) {
+            if ($this->config['http']['enable']) {
+                $this->primaryConfig = $this->config['http'];
+                $this->primaryConfig['setting']['open_http_protocol'] = true;
+                if (!isset($this->primaryConfig['setting']['daemonize'])) {
+                    $this->primaryConfig['setting']['daemonize'] = false;
+                }
+                $serverClass = \swoole_http_server::class;
+                unset($this->config['http']);
+
+                goto start;
+            }
+        }
+
+        start:
+
+        foreach ($this->config as $name => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $this->otherConfig[$name] = $item;
+        }
+//        var_dump($this->otherConfig);exit(1);
 
         $host = $this->primaryConfig['host'];
         $port = $this->primaryConfig['port'];
@@ -65,7 +108,8 @@ class Server
             $this->enableTask = true;
         }
 
-        Logger::info("开始监听端口 {$host}:{$port}");
+        $serverName = $this->enableWebsocket?'websocket':'http';
+        Logger::info("开始监听 [{$serverName}] {$host}:{$port}");
         $this->server = new $serverClass($host, $port, SWOOLE_PROCESS, $type);
         $this->server->set($setting);
 
@@ -76,14 +120,10 @@ class Server
         $this->bindOtherEvent();
     }
 
-    /**
-     * @description 此处借鉴 @laravel-s
-     * @link        https://github.com/hhxsv5/laravel-s/blob/master/src/Swoole/Server.php#L65
-     */
     protected function bindBaseEvent()
     {
-        $this->server->on('Start', [$this, 'start']);
-        $this->server->on('Shutdown', [$this, 'shutdown']);
+        $this->server->on('Start', [$this, 'Start']);
+        $this->server->on('Shutdown', [$this, 'Shutdown']);
         $this->server->on('ManagerStart', [$this, 'ManagerStart']);
         $this->server->on('ManagerStop', [$this, 'ManagerStop']);
         $this->server->on('WorkerStart', [$this, 'WorkerStart']);
@@ -108,32 +148,87 @@ class Server
             $eventHandler = $websocketHandler->make();
 
             $this->server->on('Open', function () use ($eventHandler) {
-                $eventHandler('open', func_get_args());
+                $eventHandler('Open', func_get_args());
             });
 
             $this->server->on('Message', function () use ($eventHandler) {
-                $eventHandler('message', func_get_args());
+                $eventHandler('Message', func_get_args());
             });
 
             $this->server->on('Close', function () use ($eventHandler) {
-                $eventHandler('close', func_get_args());
+                $eventHandler('Close', func_get_args());
             });
         } else {
             $httpHandler = new HttpHandler($handlerClass);
             $eventHandler = $httpHandler->make();
 
-            $this->server->on('request', function () use ($eventHandler) {
-                $eventHandler('request', func_get_args());
+            $this->server->on('Request', function () use ($eventHandler) {
+                $eventHandler('Request', func_get_args());
             });
         }
     }
 
     protected function bindOtherEvent()
     {
+        foreach ($this->otherConfig as $serverName => $event) {
+            $setting = isset($event['setting']) ? $event['setting'] : [];
+            if (!$event['enable']) {
+                continue;
+            }
 
+            if($serverName == 'http') {
+                if (!isset($setting['daemonize'])) {
+                    $setting['daemonize'] = false;
+                }
+
+                $setting['open_http_protocol'] = true;
+            }
+
+            $port = $this->server->listen($event['host'], $event['port'],
+                $event['type']);
+            Logger::info("开始监听 [{$serverName}] {$event['host']}:{$event['port']}");
+            if (!($port instanceof \swoole_server_port)) {
+                $errno = method_exists($this->server, 'getLastError')
+                    ? $this->server->getLastError() : 'unknown';
+                $errstr = sprintf('listen %s:%s failed: errno=%s',
+                    $event['host'], $event['port'], $errno);
+                Logger::err($errstr);
+                continue;
+            }
+
+            $port->set($setting);
+
+            if(!isset($event['handler']) || !class_exists($event['handler'])) {
+                Logger::warn("请创建{$serverName}的执行代码！！！");
+                continue;
+            }
+
+            $handlerClass = $event['handler'];
+
+            $serverHandler = new ServerHandler($port, $handlerClass);
+            $eventHandler = $serverHandler->make();
+
+            static $events = [
+                'Open',
+                'Request',
+                'Message',
+                'Connect',
+                'Close',
+                'Receive',
+                'Packet',
+                'BufferFull',
+                'BufferEmpty',
+            ];
+
+            foreach ($events as $event) {
+                $port->on($event, function () use ($event, $eventHandler) {
+                    $eventHandler($event, func_get_args());
+                });
+            }
+        }
     }
 
-    public function start(\swoole_http_server $server)
+    public function Start(\swoole_http_server $server)
     {
         foreach (spl_autoload_functions() as $function) {
             spl_autoload_unregister($function);
@@ -141,12 +236,12 @@ class Server
 
         $this->setProcessName('master process');
 
-        if (version_compare(swoole_version(), '1.10.4', '<')) {
+        if (version_compare(\swoole_version(), '1.10.4', '>=')) {
             file_put_contents($this->config['pid_file'], $server->master_pid);
         }
     }
 
-    public function shutdown(\swoole_http_server $server)
+    public function Shutdown(\swoole_http_server $server)
     {
 
     }
@@ -209,7 +304,7 @@ class Server
 
     }
 
-    public function task(
+    public function Task(
         \swoole_http_server $server,
         $task_id,
         $src_worker_id,
@@ -223,7 +318,7 @@ class Server
         }
     }
 
-    public function finish(\swoole_http_server $server, $task_id, $data)
+    public function Finish(\swoole_http_server $server, $task_id, $data)
     {
 
     }

@@ -8,6 +8,8 @@ use swoole_websocket_and_tcp_and_udp\protocol\WebsocketEvent;
 
 abstract class Handler
 {
+    protected $handlerClass;
+
     protected function make()
     {
     }

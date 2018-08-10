@@ -4,9 +4,9 @@ namespace swoole_websocket_and_tcp_and_udp_test;
 
 
 use swoole_websocket_and_tcp_and_udp\common\Logger;
-use swoole_websocket_and_tcp_and_udp\protocol\WebsocketEvent;
+use swoole_websocket_and_tcp_and_udp\WebsocketHandlerInterface;
 
-class webscoket extends WebsocketEvent
+class webscoket implements WebsocketHandlerInterface
 {
     use Logger;
 
@@ -14,7 +14,7 @@ class webscoket extends WebsocketEvent
     {
     }
 
-    public function open(
+    public function Open(
         \swoole_websocket_server $server,
         \swoole_http_request $request
     ) {
@@ -23,7 +23,7 @@ class webscoket extends WebsocketEvent
         Logger::info("{$info['remote_ip']}:{$info['remote_port']}, Connect");
     }
 
-    public function message(
+    public function Message(
         \swoole_websocket_server $server,
         \swoole_websocket_frame $frame
     ) {
@@ -40,7 +40,7 @@ class webscoket extends WebsocketEvent
         Logger::info("{$info['remote_ip']}:{$info['remote_port']}, Message [fd{$fd}]: {$data}");
     }
 
-    public function close(\swoole_websocket_server $server, $fd)
+    public function Close(\swoole_websocket_server $server, $fd)
     {
         $info = $server->connection_info($fd);
         Logger::info("{$info['remote_ip']}:{$info['remote_port']}, Close");

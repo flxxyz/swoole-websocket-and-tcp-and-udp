@@ -3,7 +3,7 @@
 namespace swoole_websocket_and_tcp_and_udp\protocol;
 
 
-abstract class WebsocketEvent implements WebsocketInterface
+abstract class WebsocketEvent implements WebsocketInterface, PortInterface
 {
     /**
      * @var \swoole_server_port
@@ -17,7 +17,7 @@ abstract class WebsocketEvent implements WebsocketInterface
      */
     public function __construct(\swoole_server_port $port)
     {
-        $this->port = $port;
+//        $this->port = $port;
     }
 
     public function open(
