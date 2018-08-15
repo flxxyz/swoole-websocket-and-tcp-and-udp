@@ -12,7 +12,7 @@ trait Swoole
         }
 
         //exec("php --ri swoole | grep Version | awk '{print $3}'");
-        if(!version_compare(\swoole_version(), $version, '<')) {
+        if(!version_compare(\swoole_version(), $version, '>=')) {
             throw new \Exception("swoole扩展版本小于{$version}");
         }
     }

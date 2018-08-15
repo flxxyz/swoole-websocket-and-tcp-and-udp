@@ -3,10 +3,10 @@
 ## 介绍
 一个基于swoole的封装程序
 
-## 配置项
+## 实例
 
 ```php
-return [
+$config = [
     'timezone'            => 'Asia/Shanghai',
     'tick_interval_timer' => 30, //秒
     'websocket'           => [
@@ -54,6 +54,9 @@ return [
         'handler' => '',
     ],
 ];
+
+$server = new \swoole_websocket_and_tcp_and_udp\Server($config);
+$server->run();
 ```
 
 ## 任务

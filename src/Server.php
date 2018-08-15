@@ -97,7 +97,6 @@ class Server
 
             $this->otherConfig[$name] = $item;
         }
-//        var_dump($this->otherConfig);exit(1);
 
         $host = $this->primaryConfig['host'];
         $port = $this->primaryConfig['port'];
@@ -237,7 +236,11 @@ class Server
         $this->setProcessName('master process');
 
         if (version_compare(\swoole_version(), '1.10.4', '>=')) {
-            file_put_contents($this->config['pid_file'], $server->master_pid);
+            if (isset($this->config['pid_file'])) {
+                if (is_dir(dirname($this->config['pid_file']))) {
+                    file_put_contents($this->config['pid_file'], $server->master_pid);
+                }
+            }
         }
     }
 
